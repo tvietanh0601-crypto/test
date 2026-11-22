@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Tra cứu & Xác minh tài khoản TikTok</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #121212;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      padding-top: 50px;
+    }
+    .card {
+      background: #1e1e1e;
+      width: 400px;
+      padding: 24px;
+      border-radius: 14px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .search-row {
+      display: flex;
+      gap: 8px;
+    }
+    input {
+      flex: 1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #333;
+      background: #2a2a2a;
+      color: #fff;
+      outline: none;
+    }
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    .btn-search {
+      background: #fe2c55;
+      color: #fff;
+    }
+    .profile {
+      display: none;
+      margin-top: 24px;
+      text-align: center;
+      border-top: 1px solid #2f2f2f;
+      padding-top: 20px;
+    }
+    .avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #25f4ee;
+    }
+    .name-row {
+      margin-top: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .badge {
+      display: none;
+      background: #20d5ec;
+      color: #000;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      font-weight: bold;
+    }
+    .username {
+      color: #aaa;
+      margin-top: 4px;
+      font-size: 14px;
+    }
+    .bio {
+      font-size: 13px;
+      color: #ddd;
+      margin: 10px 0 16px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      background: #262626;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+    .stats strong {
+      display: block;
+      font-size: 15px;
+      margin-bottom: 2px;
+    }
+    .btn-grant {
+      margin-top: 18px;
+      width: 100%;
+      background: #20d5ec;
+      color: #000;
+      padding: 12px;
+    }
+    .status-msg {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #25f4ee;
+      min-height: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="card">
+  <h3>Xác minh hồ sơ TikTok</h3>
+  <div class="search-row">
+    <input id="usernameInput" type="text" placeholder="Nhập @username (vd: @tiktok)">
+    <button class="btn-search" onclick="findUser()">Tìm</button>
+  </div>
+
+  <div id="profile" class="profile">
+    <img id="avatar" class="avatar" src="" alt="Avatar">
+    <div class="name-row">
+      <span id="nickname"></span>
+      <span id="badge" class="badge">✔ Tích xanh</span>
+    </div>
+    <div id="uniqueId" class="username"></div>
+    <div id="signature" class="bio"></div>
+
+    <div class="stats">
+      <div><strong id="followers">0</strong>Follower</div>
+      <div><strong id="hearts">0</strong>Lượt thích</div>
+      <div><strong id="videos">0</strong>Video</div>
+    </div>
+
+    <button class="btn-grant" onclick="grantBlueBadge()">Phát tích xanh trực tiếp</button>
+    <div id="statusMsg" class="status-msg"></div>
+  </div>
+</div>
+
+<script>
+  const inputEl = document.getElementById("usernameInput");
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") findUser();
+  });
+
+  async function findUser() {
+    const cleanUser = inputEl.value.trim().replace(/^@/, "");
+    if (!cleanUser) {
+      alert("Vui lòng nhập @username.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(cleanUser)}`);
+      const json = await res.json();
+
+      if (json.code !== 0 || !json.data || !json.data.user) {
+        alert(json.msg || "Không tìm thấy tài khoản.");
+        return;
+      }
+
+      const user = json.data.user;
+      const stats = json.data.stats || {};
+
+      document.getElementById("avatar").src = user.avatarLarger || user.avatarMedium || user.avatarThumb;
+      document.getElementById("nickname").textContent = user.nickname || "";
+      document.getElementById("uniqueId").textContent = `@${user.uniqueId} • ID: ${user.id}`;
+      document.getElementById("signature").textContent = user.signature || "";
+
+      document.getElementById("followers").textContent = (stats.followerCount ?? 0).toLocaleString("vi-VN");
+      document.getElementById("hearts").textContent = (stats.heartCount ?? 0).toLocaleString("vi-VN");
+      document.getElementById("videos").textContent = (stats.videoCount ?? 0).toLocaleString("vi-VN");
+
+      document.getElementById("badge").style.display = user.verified ? "inline-block" : "none";
+      document.getElementById("statusMsg").textContent = user.verified ? "Tài khoản này đã có tích xanh." : "";
+      document.getElementById("profile").style.display = "block";
+    } catch (err) {
+      alert("Lỗi khi gọi API: " + err.message);
+    }
+  }
+
+  function grantBlueBadge() {
+    document.getElementById("badge").style.display = "inline-block";
+    document.getElementById("statusMsg").textContent = "Đã bật huy hiệu tích xanh trên giao diện xác minh.";
+  }
+</script>
+
+</body>
+</html>
