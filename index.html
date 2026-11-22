@@ -114,7 +114,7 @@
       padding: 3px 8px;
       border-radius: 999px;
       background: #2b2b2b;
-      color: #cfcfcf;
+      color: #25f4ee;
     }
     .name-row {
       margin-top: 10px;
@@ -217,6 +217,9 @@
 </div>
 
 <script>
+  // ĐIỀN LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY (bỏ dấu / ở cuối nếu có)
+  const CLOUDFLARE_WORKER_URL = "https://your-worker-name.your-subdomain.workers.dev";
+
   const inputEl = document.getElementById("usernameInput");
   const searchBtn = document.getElementById("searchBtn");
   const statusBar = document.getElementById("statusBar");
@@ -248,7 +251,7 @@
     return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='100%25' height='100%25' fill='%23282828'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%2325f4ee' font-family='Arial' font-size='42' font-weight='bold'>${label}</text></svg>`;
   }
 
-  async function fetchWithTimeout(url, timeoutMs = 6000) {
+  async function fetchWithTimeout(url, timeoutMs = 7000) {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
@@ -258,40 +261,59 @@
     }
   }
 
-  async function fetchRealTikTokUser(cleanUser) {
-    const targetUrl = `https://www.tikwm.com/api/user/info?unique_id=${encodeURIComponent(cleanUser)}`;
+  function isValidTikTokPayload(json) {
+    return Boolean(json && json.code === 0 && json.data && json.data.user);
+  }
 
-    // 1. Thử AllOrigins (/get)
+  async function fetchRealTikTokUser(cleanUser) {
+    const encodedUser = encodeURIComponent(cleanUser);
+    const workerBase = CLOUDFLARE_WORKER_URL.trim().replace(/\/+$/, "");
+
+    // 1. Ưu tiên gọi thẳng Cloudflare Worker của bạn trước
+    if (workerBase && !workerBase.includes("your-worker-name")) {
+      try {
+        const rWorker = await fetchWithTimeout(`${workerBase}/?unique_id=${encodedUser}`);
+        if (rWorker.ok) {
+          const parsed = await rWorker.json();
+          if (isValidTikTokPayload(parsed)) {
+            return { payload: parsed, source: "Dữ liệu thật (Cloudflare Worker)" };
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 2. Dự phòng qua AllOrigins (/get)
+    const targetUrl = `https://www.tikwm.com/api/user/info?unique_id=${encodedUser}`;
     try {
       const r1 = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
       if (r1.ok) {
         const wrap = await r1.json();
         if (wrap && wrap.contents) {
           const parsed = JSON.parse(wrap.contents);
-          if (parsed && parsed.code === 0 && parsed.data && parsed.data.user) {
+          if (isValidTikTokPayload(parsed)) {
             return { payload: parsed, source: "Dữ liệu thật (AllOrigins Proxy)" };
           }
         }
       }
     } catch (_) {}
 
-    // 2. Thử CodeTabs Proxy
+    // 3. Dự phòng qua CodeTabs Proxy
     try {
       const r2 = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
       if (r2.ok) {
         const parsed = await r2.json();
-        if (parsed && parsed.code === 0 && parsed.data && parsed.data.user) {
+        if (isValidTikTokPayload(parsed)) {
           return { payload: parsed, source: "Dữ liệu thật (CodeTabs Proxy)" };
         }
       }
     } catch (_) {}
 
-    // 3. Thử gọi trực tiếp
+    // 4. Dự phòng gọi trực tiếp
     try {
       const r3 = await fetchWithTimeout(targetUrl);
       if (r3.ok) {
         const parsed = await r3.json();
-        if (parsed && parsed.code === 0 && parsed.data && parsed.data.user) {
+        if (isValidTikTokPayload(parsed)) {
           return { payload: parsed, source: "Dữ liệu thật (Direct API)" };
         }
       }
@@ -302,7 +324,7 @@
 
   function buildFallbackUser(cleanUser) {
     return {
-      source: "Chế độ mô phỏng (Proxy bị chặn/lỗi mạng)",
+      source: "Chế độ mô phỏng (Chưa kết nối được Worker/API)",
       payload: {
         code: 0,
         data: {
@@ -373,7 +395,7 @@
 
       if (!result) {
         result = buildFallbackUser(cleanUser);
-        showError("Không thể kết nối trực tiếp tới proxy API từ trình duyệt hiện tại (có thể do CORS, mạng hoặc VPN). Đã chuyển sang chế độ mô phỏng để bạn kiểm tra giao diện.");
+        showError("Chưa lấy được dữ liệu thật từ Cloudflare Worker hoặc các proxy dự phòng. Đang hiển thị chế độ mô phỏng.");
       }
 
       renderProfile(result);
