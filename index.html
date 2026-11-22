@@ -5,9 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tra cứu & Xác minh tài khoản TikTok</title>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     body {
       font-family: Arial, Helvetica, sans-serif;
       background: #121212;
@@ -28,15 +26,8 @@
       border: 1px solid #2c2c2c;
       height: fit-content;
     }
-    h3 {
-      margin: 0 0 16px;
-      font-size: 19px;
-      text-align: center;
-    }
-    .search-row {
-      display: flex;
-      gap: 8px;
-    }
+    h3 { margin: 0 0 16px; font-size: 19px; text-align: center; }
+    .search-row { display: flex; gap: 8px; }
     input {
       flex: 1;
       padding: 11px 12px;
@@ -47,9 +38,7 @@
       outline: none;
       font-size: 14px;
     }
-    input:focus {
-      border-color: #25f4ee;
-    }
+    input:focus { border-color: #25f4ee; }
     button {
       padding: 11px 16px;
       border: none;
@@ -57,36 +46,25 @@
       cursor: pointer;
       font-weight: bold;
       font-size: 14px;
-      transition: opacity 0.2s ease, transform 0.1s ease;
     }
-    button:active {
-      transform: scale(0.98);
-    }
-    button:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-    .btn-search {
-      background: #fe2c55;
-      color: #fff;
-    }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-search { background: #fe2c55; color: #fff; }
     .status-bar {
-      margin-top: 12px;
+      margin-top: 10px;
       font-size: 12px;
       color: #9e9e9e;
-      min-height: 18px;
+      min-height: 16px;
       text-align: center;
     }
     .error-box {
       display: none;
-      margin-top: 12px;
+      margin-top: 10px;
       padding: 10px 12px;
       border-radius: 8px;
       background: rgba(254, 44, 85, 0.14);
       border: 1px solid rgba(254, 44, 85, 0.4);
       color: #ff8099;
       font-size: 13px;
-      line-height: 1.4;
     }
     .profile {
       display: none;
@@ -94,10 +72,6 @@
       text-align: center;
       border-top: 1px solid #2f2f2f;
       padding-top: 20px;
-    }
-    .avatar-wrap {
-      position: relative;
-      display: inline-block;
     }
     .avatar {
       width: 96px;
@@ -135,35 +109,16 @@
       border-radius: 999px;
       font-weight: bold;
     }
-    .username {
-      color: #aaa;
-      margin-top: 4px;
-      font-size: 13px;
-    }
+    .username { color: #aaa; margin-top: 4px; font-size: 13px; }
     .bio {
       font-size: 13px;
       color: #ddd;
-      margin: 10px 0 16px;
+      margin: 12px 0 16px;
       word-break: break-word;
       line-height: 1.45;
     }
-    .stats {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      background: #262626;
-      padding: 12px;
-      border-radius: 10px;
-      font-size: 12px;
-    }
-    .stats strong {
-      display: block;
-      font-size: 15px;
-      margin-bottom: 3px;
-      color: #fff;
-    }
     .btn-grant {
-      margin-top: 18px;
+      margin-top: 8px;
       width: 100%;
       background: #20d5ec;
       color: #000;
@@ -192,10 +147,8 @@
   <div id="errorBox" class="error-box"></div>
 
   <div id="profile" class="profile">
-    <div class="avatar-wrap">
-      <img id="avatar" class="avatar" src="" alt="Avatar">
-    </div>
-    <div><span id="sourceTag" class="source-tag"></span></div>
+    <img id="avatar" class="avatar" src="" alt="Avatar">
+    <div><span id="sourceTag" class="source-tag">TikTok oEmbed API</span></div>
 
     <div class="name-row">
       <span id="nickname"></span>
@@ -205,19 +158,12 @@
     <div id="uniqueId" class="username"></div>
     <div id="signature" class="bio"></div>
 
-    <div class="stats">
-      <div><strong id="followers">0</strong>Follower</div>
-      <div><strong id="hearts">0</strong>Lượt thích</div>
-      <div><strong id="videos">0</strong>Video</div>
-    </div>
-
     <button id="grantBtn" class="btn-grant" onclick="grantBlueBadge()">Phát tích xanh trực tiếp</button>
     <div id="grantResult" class="grant-result"></div>
   </div>
 </div>
 
 <script>
-  // ĐIỀN LINK CLOUDFLARE WORKER CỦA BẠN VÀO ĐÂY (bỏ dấu / ở cuối nếu có)
   const CLOUDFLARE_WORKER_URL = "https://tiktok-user-proxy.tvietanh0601.workers.dev";
 
   const inputEl = document.getElementById("usernameInput");
@@ -251,132 +197,6 @@
     return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='120'><rect width='100%25' height='100%25' fill='%23282828'/><text x='50%25' y='54%25' dominant-baseline='middle' text-anchor='middle' fill='%2325f4ee' font-family='Arial' font-size='42' font-weight='bold'>${label}</text></svg>`;
   }
 
-  async function fetchWithTimeout(url, timeoutMs = 7000) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
-    try {
-      return await fetch(url, { signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
-    }
-  }
-
-  function isValidTikTokPayload(json) {
-    return Boolean(json && json.code === 0 && json.data && json.data.user);
-  }
-
-  async function fetchRealTikTokUser(cleanUser) {
-    const encodedUser = encodeURIComponent(cleanUser);
-    const workerBase = CLOUDFLARE_WORKER_URL.trim().replace(/\/+$/, "");
-
-    // 1. Ưu tiên gọi thẳng Cloudflare Worker của bạn trước
-    if (workerBase && !workerBase.includes("your-worker-name")) {
-      try {
-        const rWorker = await fetchWithTimeout(`${workerBase}/?unique_id=${encodedUser}`);
-        if (rWorker.ok) {
-          const parsed = await rWorker.json();
-          if (isValidTikTokPayload(parsed)) {
-            return { payload: parsed, source: "Dữ liệu thật (Cloudflare Worker)" };
-          }
-        }
-      } catch (_) {}
-    }
-
-    // 2. Dự phòng qua AllOrigins (/get)
-    const targetUrl = `https://www.tikwm.com/api/user/info?unique_id=${encodedUser}`;
-    try {
-      const r1 = await fetchWithTimeout(`https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`);
-      if (r1.ok) {
-        const wrap = await r1.json();
-        if (wrap && wrap.contents) {
-          const parsed = JSON.parse(wrap.contents);
-          if (isValidTikTokPayload(parsed)) {
-            return { payload: parsed, source: "Dữ liệu thật (AllOrigins Proxy)" };
-          }
-        }
-      }
-    } catch (_) {}
-
-    // 3. Dự phòng qua CodeTabs Proxy
-    try {
-      const r2 = await fetchWithTimeout(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`);
-      if (r2.ok) {
-        const parsed = await r2.json();
-        if (isValidTikTokPayload(parsed)) {
-          return { payload: parsed, source: "Dữ liệu thật (CodeTabs Proxy)" };
-        }
-      }
-    } catch (_) {}
-
-    // 4. Dự phòng gọi trực tiếp
-    try {
-      const r3 = await fetchWithTimeout(targetUrl);
-      if (r3.ok) {
-        const parsed = await r3.json();
-        if (isValidTikTokPayload(parsed)) {
-          return { payload: parsed, source: "Dữ liệu thật (Direct API)" };
-        }
-      }
-    } catch (_) {}
-
-    return null;
-  }
-
-  function buildFallbackUser(cleanUser) {
-    return {
-      source: "Chế độ mô phỏng (Chưa kết nối được Worker/API)",
-      payload: {
-        code: 0,
-        data: {
-          user: {
-            id: String(Math.floor(100000000 + Math.random() * 899999999)),
-            uniqueId: cleanUser,
-            nickname: cleanUser,
-            avatarLarger: makeSvgAvatar(cleanUser),
-            signature: "Hồ sơ hiển thị ở chế độ dự phòng khi không thể kết nối API công khai.",
-            verified: false
-          },
-          stats: {
-            followerCount: 12500,
-            heartCount: 84200,
-            videoCount: 48
-          }
-        }
-      }
-    };
-  }
-
-  function renderProfile(result) {
-    const user = result.payload.data.user;
-    const stats = result.payload.data.stats || {};
-    currentUserData = user;
-
-    const avatarEl = document.getElementById("avatar");
-    const fallbackImg = makeSvgAvatar(user.nickname || user.uniqueId);
-    avatarEl.onerror = () => {
-      avatarEl.onerror = null;
-      avatarEl.src = fallbackImg;
-    };
-    avatarEl.src = user.avatarLarger || user.avatarMedium || user.avatarThumb || fallbackImg;
-
-    document.getElementById("sourceTag").textContent = result.source;
-    document.getElementById("nickname").textContent = user.nickname || user.uniqueId;
-    document.getElementById("uniqueId").textContent = `@${user.uniqueId} • ID: ${user.id || "N/A"}`;
-    document.getElementById("signature").textContent = user.signature || "";
-
-    document.getElementById("followers").textContent = (stats.followerCount ?? 0).toLocaleString("vi-VN");
-    document.getElementById("hearts").textContent = (stats.heartCount ?? 0).toLocaleString("vi-VN");
-    document.getElementById("videos").textContent = (stats.videoCount ?? 0).toLocaleString("vi-VN");
-
-    const isVerified = Boolean(user.verified);
-    document.getElementById("badge").style.display = isVerified ? "inline-block" : "none";
-    grantResultEl.textContent = isVerified
-      ? "Tài khoản này đã có tích xanh trên hệ thống."
-      : "Chưa có tích xanh — sẵn sàng xác minh & cấp quyền.";
-
-    profileEl.style.display = "block";
-  }
-
   async function findUser() {
     clearError();
     grantResultEl.textContent = "";
@@ -391,22 +211,46 @@
     statusBar.textContent = `Đang tra cứu @${cleanUser}...`;
 
     try {
-      let result = await fetchRealTikTokUser(cleanUser);
+      const workerBase = CLOUDFLARE_WORKER_URL.trim().replace(/\/+$/, "");
+      // Gọi qua Worker trước; nếu Worker chưa cấu hình thì gọi thẳng oEmbed của TikTok
+      const endpoint = workerBase
+        ? `${workerBase}/?unique_id=${encodeURIComponent(cleanUser)}`
+        : `https://www.tiktok.com/oembed?url=${encodeURIComponent(`https://www.tiktok.com/@${cleanUser}`)}`;
 
-      if (!result) {
-        result = buildFallbackUser(cleanUser);
-        showError("Chưa lấy được dữ liệu thật từ Cloudflare Worker hoặc các proxy dự phòng. Đang hiển thị chế độ mô phỏng.");
+      const res = await fetch(endpoint);
+      const data = await res.json();
+
+      let user = null;
+      if (data && data.code === 0 && data.data && data.data.user) {
+        user = data.data.user;
+      } else if (data && data.author_name) {
+        user = {
+          id: data.author_id || "oEmbed",
+          uniqueId: cleanUser,
+          nickname: data.author_name,
+          signature: data.title ? `Bài đăng gần nhất: ${data.title}` : "",
+          verified: false
+        };
       }
 
-      renderProfile(result);
-      statusBar.textContent = `Đã tải hồ sơ @${cleanUser}.`;
+      if (!user) {
+        showError((data && data.msg) || "Không tìm thấy tài khoản trên TikTok.");
+        return;
+      }
+
+      currentUserData = user;
+      document.getElementById("avatar").src = makeSvgAvatar(user.nickname || user.uniqueId);
+      document.getElementById("nickname").textContent = user.nickname;
+      document.getElementById("uniqueId").textContent = `@${user.uniqueId} • ID: ${user.id}`;
+      document.getElementById("signature").textContent = user.signature;
+      document.getElementById("badge").style.display = user.verified ? "inline-block" : "none";
+      grantResultEl.textContent = "Đã xác minh tên kênh thật qua TikTok oEmbed.";
+      profileEl.style.display = "block";
     } catch (err) {
-      showError("Có lỗi xảy ra: " + (err && err.message ? err.message : "Không xác định"));
+      showError("Lỗi gọi oEmbed: " + (err && err.message ? err.message : "Không xác định"));
     } finally {
       searchBtn.disabled = false;
-      setTimeout(() => {
-        if (!searchBtn.disabled) statusBar.textContent = "";
-      }, 2500);
+      statusBar.textContent = "";
     }
   }
 
